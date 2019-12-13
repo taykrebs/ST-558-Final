@@ -106,34 +106,41 @@ shinyServer(function(input, output){
   })
   
   
-  #tree regression
-  
-  set.seed(123)
-  observe({
-    treefit <- tree(as.formula(paste("price ~ ", paste(input$checkGroup,collapse="+"))), data=diamondsTrain)
-    treefitpruned <- prune.tree(treefit, best = input$treeNodes)
-  
-  
-  output$treesum <- renderPrint({
-    summary(treefitpruned)
-  })
-  
-  plot(treefitpruned)
-  text(treefitpruned, cex=.75)
-  cvTree <- cv.tree(treefitpruned)
-  
-  output$treefitprunedplot <- renderPlot({
-    plot(cvTree$size, cvTree$dev, type = 'b')
-  })
-  
-  output$treemodel <- renderUI({
-    text <- (paste("Model Selected : Price ~ ",paste(input$checkGroup,collapse="+")))
-    h4(text)
-  })
-  
+    #tree regression
+    
+    set.seed(123)
+    treefit <- reactive({
+      dataset <- diamondsTrain
+      res <- tree(as.formula(paste("price ~ ", paste(input$checkGroup,collapse="+"))), data=dataset)
+      list(res = res)
+    })
+    
+    treefitpruned <- reactive({
+      fit <- treefit()$res
+      res <- prune.tree(fit, best = input$treeNodes)
+      list(res=res)
+    })
+    
+    
+    output$treesum <- renderPrint({
+      summary(treefitpruned()$res)
+    })
 
-  })
-  
+    cvTree <- reactive({
+      cv.tree(treefitpruned()$res)
+    })
+    
+    output$treefitprunedplot <- renderPlot({
+      plot(cvTree()$size, cvTree()$dev, type = 'b')
+    })
+    
+
+    output$treemodel <- renderUI({
+      text <- (paste("Model Selected : Price ~ ",paste(input$checkGroup,collapse="+")))
+      h4(text)
+    })
+      
+    
 
   
     ##Exploration tab
